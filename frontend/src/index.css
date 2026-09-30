@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Optional: emerald accent as a custom token if you want it later */
+}

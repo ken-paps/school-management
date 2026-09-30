@@ -1,0 +1,85 @@
+import { useCallback, useEffect, useState } from 'react'
+import api from '../lib/axios'
+
+export default function useTeachers() {
+  const [teachers, setTeachers] = useState([])
+  const [meta, setMeta] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  const [filters, setFilters] = useState({
+    search: '',
+    page: 1,
+    per_page: 15,
+  })
+
+  const refresh = useCallback(
+    async (overrideFilters) => {
+      const params = overrideFilters ?? filters
+      setLoading(true)
+      setError(null)
+      try {
+        const cleanParams = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v !== null && v !== undefined))
+        const { data } = await api.get('/api/teachers', { params: cleanParams })
+        setTeachers(data.data)
+        setMeta({
+          current_page: data.current_page,
+          last_page: data.last_page,
+          per_page: data.per_page,
+          total: data.total,
+          from: data.from,
+          to: data.to,
+        })
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [filters],
+  )
+
+  useEffect(() => {
+    refresh()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.search, filters.page, filters.per_page])
+
+  const createTeacher = useCallback(
+    async (payload) => {
+      const { data } = await api.post('/api/teachers', payload)
+      await refresh()
+      return data.teacher
+    },
+    [refresh],
+  )
+
+  const updateTeacher = useCallback(
+    async (id, payload) => {
+      const { data } = await api.put(`/api/teachers/${id}`, payload)
+      await refresh()
+      return data.teacher
+    },
+    [refresh],
+  )
+
+  const deleteTeacher = useCallback(
+    async (id) => {
+      await api.delete(`/api/teachers/${id}`)
+      await refresh()
+    },
+    [refresh],
+  )
+
+  return {
+    teachers,
+    meta,
+    loading,
+    error,
+    filters,
+    setFilters,
+    refresh,
+    createTeacher,
+    updateTeacher,
+    deleteTeacher,
+  }
+}
